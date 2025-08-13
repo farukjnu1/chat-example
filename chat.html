@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <link rel="shortcut icon" href="images/Graphicloads-100-Flat-2-Chat-2.ico">
+    <style>
+      
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/jquery-3.4.1.min.js"></script>
+    <script>
+        $(function () {
+            var strUserInfo = sessionStorage.getItem('userInfo');
+            var oUserInfo = JSON.parse(strUserInfo);
+            getAddress(oUserInfo.latitude, oUserInfo.longitude);
+            if(oUserInfo===null){
+              window.location.replace("http://localhost:3000");
+            }
+            $('#user').text(oUserInfo.userId);
+            $('#lat').text(oUserInfo.latitude);
+            $('#lon').text(oUserInfo.longitude);
+            
+            var socket = io();
+            $('#dropContainer').submit(function(e) {
+                e.preventDefault(); // prevents page reloading
+                var currentDateTime = new Date();
+                var newDateTime = currentDateTime.toLocaleDateString() + ' ' + currentDateTime.toLocaleTimeString();
+                var oMessage = { "userId":oUserInfo.userId, "message":$('#m').val(), "dateTime":newDateTime };
+                socket.emit('chat message', oMessage );
+                $('#m').val('');
+                return false;
+            });
+
+            socket.on('chat message', function(msg){
+                var htmlElements ='<strong>'+ msg.userId+'</strong>: '+msg.message+'<br/><span style="color:#7f8680">'+msg.dateTime+'</span>';
+                $('#messages').append($('<li>').html(htmlElements));
+            });
+
+            var mapURL ='https://maps.google.com/maps?&q='+oUserInfo.latitude+','+oUserInfo.longitude+'&ie=UTF8&z=14&iwloc=B&output=embed';
+            //var mapURL = 'https://maps.google.com/maps?width=100%&amp;height=600&amp;hl=en&amp;q='+oUserInfo.latitude+','+oUserInfo.longitude+';ie=UTF8&amp;t=&amp;z=14&amp;iwloc=B&amp;output=embed';
+            $("iframe").attr("src", mapURL);
+
+            //form Submit
+            $("#formFileUpload").submit(function(evt){	 
+              evt.preventDefault();
+              var formData = new FormData($(this)[0]);
+              $.ajax({
+                  url: 'uploadfile',
+                  type: 'POST',
+                  data: formData,
+                  async: false,
+                  cache: false,
+                  contentType: false,
+                  enctype: 'multipart/form-data',
+                  processData: false,
+                  success: function (response) {
+                    var res = JSON.parse(response);
+                    //alert(res.filePath);
+                    var currentDateTime = new Date();
+                    var newDateTime = currentDateTime.toLocaleDateString() + ' ' + currentDateTime.toLocaleTimeString();
+                    var oMessage = { "userId":oUserInfo.userId, "message":'<a href="'+res.filePath+'" target="_blank">'+res.fileName+'</a>', "dateTime":newDateTime };
+                    socket.emit('chat message', oMessage );
+                    $('#upload').val('');
+                  }
+              });
+              return false;
+            });
+
+        });
+
+        function getAddress(lat, lon){
+            var oJson ={};
+            var theUrl = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&addressdetails=1';
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                    oJson = JSON.parse(xmlHttp.responseText);
+                    $('#address').text(oJson.display_name);
+            }
+            xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+            xmlHttp.send(null);
+        }
+
+    </script>
+  </head>
+  <body>
+    
+    <div id="divUser">
+      <div style="width: 50%">
+          <iframe width="100%" height="250" src="" frameborder="0" scrolling="no" marginheight="0" marginwidth="0"><a href="https://www.maps.ie/coordinates.html">find my coordinates</a></iframe>
+      </div>
+      <strong>Welcome, </strong><span id="user"></span> 
+      <br />
+      <strong>Lat: </strong><span id="lat"></span> 
+      <br />
+      <strong>Lon: </strong><span id="lon"></span>
+      <br />
+      <strong>Address: </strong><span id="address"></span>
+    </div>
+    <ul id="messages"></ul>
+
+    <div id="dropContainer">
+        <form id="formFileUpload">
+          <input type="file" name="upload" id="upload" multiple>
+          <input type="submit" value="Upload">
+        </form>
+        <form action="" >
+          <input id="m" autocomplete="off" /><button>Send</button>
+        </form>
+    </div>
+    
+    <script>
+        // dragover and dragenter events need to have 'preventDefault' called
+        // in order for the 'drop' event to register. 
+        // See: https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Drag_operations#droptargets
+        dropContainer.ondragover = dropContainer.ondragenter = function(evt) {
+          evt.preventDefault();
+        };
+
+        dropContainer.ondrop = function(evt) {
+          // pretty simple -- but not for IE :(
+          fileInput.files = evt.dataTransfer.files;
+
+          // If you want to use some of the dropped files
+          const dT = new DataTransfer();
+          dT.items.add(evt.dataTransfer.files[0]);
+          //dT.items.add(evt.dataTransfer.files[3]);
+          fileInput.files = dT.files;
+
+          evt.preventDefault();
+        };
+
+    </script>
+  </body>
+</html>
