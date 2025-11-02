@@ -5,10 +5,14 @@ This app allows users to send instant messages and share files seamlessly in rea
 
 Perfect for learning WebSocket communication, Express integration, and file handling in Node.js.
 
+----------------------------
+
 🧭 Overview
 
 This project demonstrates how to combine Socket.IO for real-time communication and Express for file uploads and serving web content.
 Users can chat instantly and share files (like images, documents, or videos) within the same interface.
+
+----------------------------
 
 🚀 Features
 
